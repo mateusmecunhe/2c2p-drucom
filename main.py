@@ -94,6 +94,23 @@ def read_drucom_report(filename='drucom_input'):
 
         return list_of_pledges
 
+def read_2c2p_transactions_export(data, filename='2c2p_transactions_input'):
+    with open(f'{filename}.csv', newline='') as csvfile:
+        # csvfile.readline()
+        reader = csv.DictReader(csvfile)
+        pledges = []
+        for row in reader:      
+            invoice_no = row.get('Invoice No')
+            pledge = list(filter(lambda x: x.INVOICE_NO == invoice_no, data))
+            if pledge:
+                pledge = pledge[0]
+                pledge.CREDIT_CARD_NUMBER = row.get('Card No / Wallet')
+                pledge.CREDIT_CARD_HOLDER_NAME = row.get('Cardholder name')
+                pledge.CREDIT_CARD_EXPIRY_DATE = row.get('') #TODO
+                pledges.append(pledge)
+        return pledges
+
+
 
 def read_2c2p_export(data, filename='2c2p_input'):
     with open(f'{filename}.csv', newline='') as csvfile:
@@ -112,6 +129,8 @@ def read_2c2p_export(data, filename='2c2p_input'):
                 pledge.DATE_PAYMENT = row.get('Settlement Date/Time')
                 pledge.CREDIT_CARD_ISSUING_BANK_NAME = row.get('Card Issuer')
                 pledge.CHANNEL = row.get('Payment Channel')
+                pledge.CREDIT_CARD_HOLDER_NAME = row.get('')
+                pledge.INVOICE_NO = row.get('Invoice No')
                 pledges.append(pledge)
         return pledges
 
@@ -349,17 +368,16 @@ def format_2c2p_date(date_string):
         return None
     return f'{donation_date[2]}/{donation_date[1]}/{donation_date[0]}'
     
-    
 
 if __name__ == "__main__":
     from datetime import datetime
-
     now = datetime.now()
     
     data = read_drucom_report()
-    finalized_data = read_2c2p_export(data=data)
+    intermediate_data = read_2c2p_export(data=data)
+    finalized_data = read_2c2p_transactions_export(data=intermediate_data)
     write_pledge(finalized_data)
     write_gifts(finalized_data)
     then = datetime.now()
-    print(then - now)
+    print(f'This data processing batch took: {then - now}')
 
