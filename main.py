@@ -379,5 +379,6 @@ if __name__ == "__main__":
     write_pledge(finalized_data)
     write_gifts(finalized_data)
     then = datetime.now()
-    print(f'This data processing batch took: {then - now}')
+    
+    print(f'Data manipulation process completed successfully!  \nThis data processing batch took: {then - now}')
 
