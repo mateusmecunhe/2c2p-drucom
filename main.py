@@ -91,16 +91,17 @@ def read_drucom_report(filename='drucom_input'):
             p.drucom_TRANSACTION_ID = row.get('Transaction ID')
             p.CAMPAIGN_ID = row.get('Campaign ID'),
             list_of_pledges.append(p)
+        
 
         return list_of_pledges
 
 def read_2c2p_transactions_export(data, filename='2c2p_transactions_input'):
     with open(f'{filename}.csv', newline='') as csvfile:
-        # csvfile.readline()
+        csvfile.readline()
         reader = csv.DictReader(csvfile)
         pledges = []
-        for row in reader:      
-            invoice_no = row.get('Invoice No')
+        for row in reader:
+            invoice_no = row.get('Invoice No') or  row.get('Invoice No./Order No.')
             pledge = list(filter(lambda x: x.INVOICE_NO == invoice_no, data))
             if pledge:
                 pledge = pledge[0]
@@ -108,13 +109,14 @@ def read_2c2p_transactions_export(data, filename='2c2p_transactions_input'):
                 pledge.CREDIT_CARD_HOLDER_NAME = row.get('Cardholder name')
                 pledge.CREDIT_CARD_EXPIRY_DATE = row.get('') #TODO
                 pledges.append(pledge)
+        
         return pledges
 
 
 
 def read_2c2p_export(data, filename='2c2p_input'):
     with open(f'{filename}.csv', newline='') as csvfile:
-        csvfile.readline()
+        # csvfile.readline()
         reader = csv.DictReader(csvfile)
         pledges = []
         for row in reader:
@@ -123,7 +125,7 @@ def read_2c2p_export(data, filename='2c2p_input'):
             if pledge:
                 pledge = pledge[0]
                 pledge.CREDIT_CARD_NUMBER = row.get('Card No / Wallet')
-                pledge.DONATION_AMOUNT = row.get('Transaction Amount').replace('.', '').replace(',', '.')
+                pledge.DONATION_AMOUNT = row.get('Transaction Amount')
                 pledge.PAID_AMOUNT_NET = row.get('Net AmountMYR')
                 pledge.PLEDGE_STATUS = row.get('Status')
                 pledge.DATE_PAYMENT = row.get('Settlement Date/Time')
@@ -132,6 +134,7 @@ def read_2c2p_export(data, filename='2c2p_input'):
                 pledge.CREDIT_CARD_HOLDER_NAME = row.get('')
                 pledge.INVOICE_NO = row.get('Invoice No')
                 pledges.append(pledge)
+                
         return pledges
 
 
@@ -244,6 +247,7 @@ def write_pledge(data):
     with open('sg_pledge_output.csv', 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=pledge_fieldnames)
         writer.writeheader()
+
         for p in data:
             if not p.CREDIT_CARD_NUMBER:
                 continue
@@ -381,4 +385,3 @@ if __name__ == "__main__":
     then = datetime.now()
     
     print(f'Data manipulation process completed successfully!  \nThis data processing batch took: {then - now}')
-
