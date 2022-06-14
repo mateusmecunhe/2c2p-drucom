@@ -9,9 +9,10 @@ class Pledge:
 
 
 def read_drucom_report(filename='drucom_input'):
-    with open(f'{filename}.csv', newline='') as csvfile:
+    with open(f'{filename}.csv', newline='', encoding='utf-8-sig') as csvfile:
         list_of_pledges = []
         reader = csv.DictReader(csvfile)
+        
         for row in reader:
             donation_date = row.get('Date').split(' ')[0].split('/')            
             p = Pledge()
@@ -54,7 +55,7 @@ def read_drucom_report(filename='drucom_input'):
                 ' ')[1::]) if row.get('Campaign ID').split(' ')[1::] else ''
             p.FUNDCODE = ''
             p.SIGNUP_DATE = f'{donation_date[1]}/{donation_date[0]}/{donation_date[2]}'
-            p.AGENT_ID = ''
+            p.AGENT_ID = row.get('ID')
             p.AGENT_NAME = ''
             p.drucom_DONATION_AMOUNT = row.get('Donation Amount')
             p.FREQUENCY = '0' if row.get('Donation type') == 'One-off' else '1'
@@ -131,8 +132,9 @@ def read_2c2p_export(data, filename='2c2p_input'):
                 pledge.DATE_PAYMENT = row.get('Settlement Date/Time')
                 pledge.CREDIT_CARD_ISSUING_BANK_NAME = row.get('Card Issuer')
                 pledge.CHANNEL = row.get('Payment Channel')
-                pledge.CREDIT_CARD_HOLDER_NAME = row.get('')
+                pledge.CREDIT_CARD_HOLDER_NAME = row.get('Cardholder name')
                 pledge.INVOICE_NO = row.get('Invoice No')
+                pledge.CARD_TYPE = row.get('Card Type')
                 pledges.append(pledge)
                 
         return pledges
@@ -293,7 +295,7 @@ def write_pledge(data):
                     "CAMPAIGN_DESCRIPTION": p.CAMPAIGN_DESCRIPTION,
                     "FUNDCODE": p.FUNDCODE,
                     "SIGNUP_DATE": p.SIGNUP_DATE,
-                    "AGENT_ID": p.drucom_TRANSACTION_ID,
+                    "AGENT_ID": p.AGENT_ID,
                     "AGENT_NAME": p.AGENT_NAME,
                     "DONATION_AMOUNT": p.DONATION_AMOUNT,
                     "FREQUENCY": p.FREQUENCY,
@@ -306,14 +308,14 @@ def write_pledge(data):
                     "BANK_ACCOUNT_HOLDER_ADDRESS": p.BANK_ACCOUNT_HOLDER_ADDRESS,
                     "CREDIT_CARD_NUMBER": p.CREDIT_CARD_NUMBER,
                     "CREDIT_CARD_EXPIRY_DATE": p.CREDIT_CARD_EXPIRY_DATE,
-                    "CREDIT_CARD_TYPE": p.CREDIT_CARD_TYPE,
-                    "CREDIT_CARD_PAYMENT_TYPE": p.CREDIT_CARD_PAYMENT_TYPE,
+                    "CREDIT_CARD_TYPE": get_credit_card_type(p.CHANNEL),
+                    "CREDIT_CARD_PAYMENT_TYPE": get_card_type(p.CARD_TYPE),
                     "CREDIT_CARD_LEVEL": p.CREDIT_CARD_LEVEL,
                     "CREDIT_CARD_ISSUING_BANK_NAME": p.CREDIT_CARD_ISSUING_BANK_NAME,
                     "CREDIT_CARD_ISSUING_BANK_CODE": p.CREDIT_CARD_ISSUING_BANK_CODE,
                     "CREDIT_CARD_HOLDER_NAME": p.CREDIT_CARD_HOLDER_NAME,
                     "TER_REQUIRED": p.TER_REQUIRED,
-                    "REMARKS": p.CHANNEL,
+                    "REMARKS": get_processing_bank_value(p.CHANNEL), 
                     "CHANNEL": 'WEB',
                     "AUTO_CHANGE_AMOUNT_TYPE": p.AUTO_CHANGE_AMOUNT_TYPE,
                     "AUTO_CHANGE_AMOUNT_INTERVAL": p.AUTO_CHANGE_AMOUNT_INTERVAL,
@@ -351,6 +353,40 @@ def write_gifts(data):
                     'PROCESSING_BANK': get_processing_bank_value(p.CHANNEL)
                 }
             )
+
+def get_card_type(card_type):
+    if not card_type:
+        return ''
+
+    card_type = card_type.lower()
+
+    data = {
+        'credit': 1,
+        'debit': 2
+    }
+
+    return data.get(card_type)
+
+def get_credit_card_type(payment_channel):
+    if not payment_channel:
+        return ''
+
+    payment_channel = payment_channel.lower()
+
+    data = {
+        'visa': 1,
+        'mastercard': 2,
+        'amex': 3,
+        'jcb': 4,
+        'diners': 5,
+        'discover': 6,
+        # Others: 99
+    }
+
+    return data.get(payment_channel) or 99
+
+
+
 
 def get_processing_bank_value(bank):
     
