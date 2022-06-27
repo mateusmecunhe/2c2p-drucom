@@ -315,7 +315,7 @@ def write_pledge(data):
                     "CREDIT_CARD_ISSUING_BANK_CODE": p.CREDIT_CARD_ISSUING_BANK_CODE,
                     "CREDIT_CARD_HOLDER_NAME": p.CREDIT_CARD_HOLDER_NAME,
                     "TER_REQUIRED": p.TER_REQUIRED,
-                    "REMARKS": get_processing_bank_value(p.CHANNEL), 
+                    "REMARKS": get_remarks(p.CHANNEL), 
                     "CHANNEL": 'WEB',
                     "AUTO_CHANGE_AMOUNT_TYPE": p.AUTO_CHANGE_AMOUNT_TYPE,
                     "AUTO_CHANGE_AMOUNT_INTERVAL": p.AUTO_CHANGE_AMOUNT_INTERVAL,
@@ -398,6 +398,13 @@ def get_processing_bank_value(bank):
             'tng': 'EWALLET',
     }
     return data.get(bank) or '2C2P'
+
+def get_remarks(bank):
+    bank = bank.lower()
+    if get_processing_bank_value(bank) == '2C2P':
+        return ''
+    else:
+        return bank.upper()
 
 def format_2c2p_date(date_string):
     #input format: YYYY/MM/DD HH:MM:SS
