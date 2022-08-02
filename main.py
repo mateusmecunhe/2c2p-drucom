@@ -43,9 +43,9 @@ def read_drucom_report(filename='drucom_input'):
             p.ADDRESS_COUNTRY = ''
             p.SPOKEN_LANGUAGE = ''
             p.OPTOUT_EMAIL = 'Y' if row.get(
-                'Consent Preference - Email') == 'off' else 'N'
+                'Consent Preference - Email').lower() == 'off' else 'N'
             p.OPTOUT_POSTAL = 'Y' if row.get(
-                'Consent Preference - Mail') == 'off' else 'N'
+                'Consent Preference - Mail').lower() == 'off' else 'N'
             p.RECRUITER_CODE = ''
             p.SUB_RECRUITER_CODE = ''
             p.RECRUITER_BATCH_NUMBER = ''
