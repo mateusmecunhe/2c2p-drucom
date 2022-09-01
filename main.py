@@ -1,3 +1,19 @@
+#TODO need to show FPX PROCESSING_BANK
+# all the transactions that are both in 123_transcation and 123_input are PROCESSING_BANK = FPX
+
+#TODO gift_output
+# output: new_gift
+# in my.2c2p, card transactions (carD_transaction input), invoice_number/ID starting with r are recurring donations
+# email = primary, status = settled
+# fields to be written: charity_trans_id, paid_amount and date_payment and requested_amount
+# column authorization_indicator: APP or REJ
+#add "whole database file" to map back to the serial number (number of the donor). SERIAL_NO refers to the donor, must be written in "new gift"
+
+#REJECTED ones:
+#PGW colums show the REJ reason
+#requested amount = attmpeted amount, paid_amount = 0
+
+
 import csv
 from distutils.log import error
 from warnings import catch_warnings
@@ -102,7 +118,7 @@ def read_2c2p_transactions_export(data, filename='2c2p_transactions_input'):
         reader = csv.DictReader(csvfile)
         pledges = []
         for row in reader:
-            invoice_no = row.get('Invoice No') or  row.get('Invoice No./Order No.')
+            invoice_no = row.get('Invoice No') or row.get('Invoice No./Order No.')
             pledge = list(filter(lambda x: x.INVOICE_NO == invoice_no, data))
             if pledge:
                 pledge = pledge[0]
@@ -139,7 +155,17 @@ def read_2c2p_export(data, filename='2c2p_input'):
                 
         return pledges
 
-
+def read_123_2c2p_export(filename='123_input'):
+    with open(f'{filename}.csv', newline='') as csvfile:
+        # csvfile.readline()
+        reader = csv.DictReader(csvfile)
+        fpx_invoice_ids = []
+        for row in reader:
+            invoice_number = row.get('Invoice No./Order No.')
+            if invoice_number:
+                fpx_invoice_ids.append(invoice_number)
+        return fpx_invoice_ids
+            
 fieldnames = [
     'FLAG', 'CHARITY_CODE', 'SERIAL_NO', 'ID_NUMBER', 'TITLE', 'FIRSTNAME', 'LASTNAME', 'ALTERNATE_NAME', 'GENDER',
     'DOB', 'RACE', 'TEL_HSE', 'TEL_HP', 'TEL_OFF', 'FAX', 'EMAIL', 'ADDRESS1', 'ADDRESS2', 'ADDRESS3', 'ADDRESS4',
@@ -299,7 +325,7 @@ def write_pledge(data):
                     "AGENT_NAME": p.AGENT_NAME,
                     "DONATION_AMOUNT": p.DONATION_AMOUNT,
                     "FREQUENCY": p.FREQUENCY,
-                    "PROCESSING_BANK": get_processing_bank_value(p.CHANNEL), #p.PROCESSING_BANK,
+                    "PROCESSING_BANK": get_processing_bank_value(p.CHANNEL, p.INVOICE_NO), #p.PROCESSING_BANK,
                     "BANK_ACCOUNT_NUMBER": p.BANK_ACCOUNT_NUMBER,
                     "BANK_ACCOUNT_BANK_CODE": p.BANK_ACCOUNT_BANK_CODE,
                     "BANK_ACCOUNT_BRANCH_CODE": p.BANK_ACCOUNT_BRANCH_CODE,
@@ -315,7 +341,7 @@ def write_pledge(data):
                     "CREDIT_CARD_ISSUING_BANK_CODE": p.CREDIT_CARD_ISSUING_BANK_CODE,
                     "CREDIT_CARD_HOLDER_NAME": p.CREDIT_CARD_HOLDER_NAME,
                     "TER_REQUIRED": p.TER_REQUIRED,
-                    "REMARKS": get_remarks(p.CHANNEL), 
+                    "REMARKS": get_remarks(p.CHANNEL, p.INVOICE_NO), 
                     "CHANNEL": 'WEB',
                     "AUTO_CHANGE_AMOUNT_TYPE": p.AUTO_CHANGE_AMOUNT_TYPE,
                     "AUTO_CHANGE_AMOUNT_INTERVAL": p.AUTO_CHANGE_AMOUNT_INTERVAL,
@@ -350,7 +376,7 @@ def write_gifts(data):
                     'AUTHORIZATION_INDICATOR': 'APP' if p.PLEDGE_STATUS == 'Settled' else 'REJ',
                     'REJECT_REASON_CODE': '',
                     'REJECT_REASON_DESCRIPTION': '',
-                    'PROCESSING_BANK': get_processing_bank_value(p.CHANNEL)
+                    'PROCESSING_BANK': get_processing_bank_value(p.CHANNEL, p.INVOICE_NO)
                 }
             )
 
@@ -388,8 +414,9 @@ def get_credit_card_type(payment_channel):
 
 
 
-def get_processing_bank_value(bank):
-    
+def get_processing_bank_value(bank, invoice_number):
+    if invoice_number in fpx_invoice_ids:
+        return 'FPX'
     bank = bank.lower()
     data = {
             'fpx': 'MANUAL',
@@ -399,9 +426,9 @@ def get_processing_bank_value(bank):
     }
     return data.get(bank) or '2C2P'
 
-def get_remarks(bank):
+def get_remarks(bank, invoice_number):
     bank = bank.lower()
-    if get_processing_bank_value(bank) == '2C2P':
+    if get_processing_bank_value(bank, invoice_number) == '2C2P':
         return ''
     else:
         return bank.upper()
@@ -419,7 +446,7 @@ def format_2c2p_date(date_string):
 if __name__ == "__main__":
     from datetime import datetime
     now = datetime.now()
-    
+    fpx_invoice_ids = read_123_2c2p_export()
     data = read_drucom_report()
     intermediate_data = read_2c2p_export(data=data)
     finalized_data = read_2c2p_transactions_export(data=intermediate_data)
