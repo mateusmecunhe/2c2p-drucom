@@ -163,7 +163,8 @@ def read_123_2c2p_export(filename='123_input'):
         for row in reader:
             invoice_number = row.get('Invoice No./Order No.')
             if invoice_number:
-                fpx_invoice_ids.append(invoice_number)
+                fpx_invoice_ids.append(invoice_number.replace("'",""))
+        print(fpx_invoice_ids)
         return fpx_invoice_ids
             
 fieldnames = [
@@ -415,6 +416,8 @@ def get_credit_card_type(payment_channel):
 
 
 def get_processing_bank_value(bank, invoice_number):
+    print(bank)
+    print(invoice_number)
     if invoice_number in fpx_invoice_ids:
         return 'FPX'
     bank = bank.lower()
