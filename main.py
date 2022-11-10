@@ -1,6 +1,3 @@
-#TODO need to show FPX PROCESSING_BANK
-# all the transactions that are both in 123_transcation and 123_input are PROCESSING_BANK = FPX
-
 #TODO gift_output
 # output: new_gift
 # in my.2c2p, card transactions (carD_transaction input), invoice_number/ID starting with r are recurring donations
@@ -72,6 +69,7 @@ def read_drucom_report(filename='drucom_input'):
             p.FUNDCODE = ''
             p.SIGNUP_DATE = f'{donation_date[1]}/{donation_date[0]}/{donation_date[2]}'
             p.AGENT_ID = row.get('ID')
+            p.ORDER_ID = row.get('ID')
             p.AGENT_NAME = ''
             p.drucom_DONATION_AMOUNT = row.get('Donation Amount')
             p.FREQUENCY = '0' if row.get('Donation type') == 'One-off' else '1'
@@ -161,10 +159,9 @@ def read_123_2c2p_export(filename='123_input'):
         reader = csv.DictReader(csvfile)
         fpx_invoice_ids = []
         for row in reader:
-            invoice_number = row.get('Invoice No./Order No.')
+            invoice_number = row.get('Invoice No./Order No.').split('-')[-1]
             if invoice_number:
                 fpx_invoice_ids.append(invoice_number.replace("'",""))
-        print(fpx_invoice_ids)
         return fpx_invoice_ids
             
 fieldnames = [
@@ -326,7 +323,7 @@ def write_pledge(data):
                     "AGENT_NAME": p.AGENT_NAME,
                     "DONATION_AMOUNT": p.DONATION_AMOUNT,
                     "FREQUENCY": p.FREQUENCY,
-                    "PROCESSING_BANK": get_processing_bank_value(p.CHANNEL, p.INVOICE_NO), #p.PROCESSING_BANK,
+                    "PROCESSING_BANK": get_processing_bank_value(p.CHANNEL, p.INVOICE_NO, p.ORDER_ID), #p.PROCESSING_BANK,
                     "BANK_ACCOUNT_NUMBER": p.BANK_ACCOUNT_NUMBER,
                     "BANK_ACCOUNT_BANK_CODE": p.BANK_ACCOUNT_BANK_CODE,
                     "BANK_ACCOUNT_BRANCH_CODE": p.BANK_ACCOUNT_BRANCH_CODE,
@@ -377,7 +374,7 @@ def write_gifts(data):
                     'AUTHORIZATION_INDICATOR': 'APP' if p.PLEDGE_STATUS == 'Settled' else 'REJ',
                     'REJECT_REASON_CODE': '',
                     'REJECT_REASON_DESCRIPTION': '',
-                    'PROCESSING_BANK': get_processing_bank_value(p.CHANNEL, p.INVOICE_NO)
+                    'PROCESSING_BANK': get_processing_bank_value(p.CHANNEL, p.INVOICE_NO, p.ORDER_ID)
                 }
             )
 
@@ -415,10 +412,9 @@ def get_credit_card_type(payment_channel):
 
 
 
-def get_processing_bank_value(bank, invoice_number):
-    print(bank)
-    print(invoice_number)
-    if invoice_number in fpx_invoice_ids:
+def get_processing_bank_value(bank, invoice_number, order_id=None):
+    
+    if order_id and order_id.split('-')[-1] in fpx_invoice_ids:
         return 'FPX'
     bank = bank.lower()
     data = {
